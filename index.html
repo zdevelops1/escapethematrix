@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GoldShark // COUNTDOWN</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #000;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  #rain-canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+    opacity: 0.18;
+  }
+
+  #scanlines {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 1;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 2px,
+      rgba(0,0,0,0.15) 2px,
+      rgba(0,0,0,0.15) 4px
+    );
+    pointer-events: none;
+  }
+
+  #vignette {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 2;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.85) 100%);
+    pointer-events: none;
+  }
+
+  #container {
+    position: relative;
+    z-index: 10;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 32px;
+  }
+
+  #top-label {
+    font-size: clamp(10px, 1.4vw, 18px);
+    color: #00ff41;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    opacity: 0.6;
+    animation: flicker 6s infinite;
+  }
+
+  #timer {
+    font-size: clamp(72px, 18vw, 260px);
+    color: #00ff41;
+    text-shadow:
+      0 0 10px #00ff41,
+      0 0 30px #00ff41,
+      0 0 80px #00ff41,
+      0 0 140px rgba(0,255,65,0.4);
+    letter-spacing: 0.05em;
+    line-height: 1;
+    animation: flicker 8s infinite, glitch 12s infinite;
+    position: relative;
+  }
+
+  #timer::before, #timer::after {
+    content: attr(data-text);
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    opacity: 0;
+  }
+  #timer::before {
+    color: #00ffff;
+    animation: glitch-before 12s infinite;
+    clip-path: polygon(0 25%, 100% 25%, 100% 50%, 0 50%);
+  }
+  #timer::after {
+    color: #ff003c;
+    animation: glitch-after 12s infinite;
+    clip-path: polygon(0 60%, 100% 60%, 100% 75%, 0 75%);
+  }
+
+  #bottom-label {
+    font-size: clamp(9px, 1.2vw, 15px);
+    color: #00ff41;
+    letter-spacing: 0.3em;
+    opacity: 0.45;
+    text-transform: uppercase;
+    animation: flicker 10s infinite;
+  }
+
+  #progress-bar-wrap {
+    width: clamp(280px, 60vw, 900px);
+    height: 3px;
+    background: rgba(0,255,65,0.1);
+    border: 1px solid rgba(0,255,65,0.2);
+    position: relative;
+    overflow: hidden;
+  }
+
+  #progress-bar {
+    height: 100%;
+    background: linear-gradient(to right, #003300, #00ff41);
+    box-shadow: 0 0 10px #00ff41;
+    transition: width 1s linear;
+  }
+
+  #percent {
+    font-size: clamp(9px, 1vw, 13px);
+    color: rgba(0,255,65,0.35);
+    letter-spacing: 0.25em;
+    margin-top: -16px;
+  }
+
+  #reset-label {
+    font-size: clamp(8px, 0.9vw, 12px);
+    color: rgba(0,255,65,0.25);
+    letter-spacing: 0.2em;
+  }
+
+  @keyframes flicker {
+    0%,94%,96%,98%,100% { opacity: 1; }
+    95% { opacity: 0.85; }
+    97% { opacity: 0.92; }
+    99% { opacity: 0.88; }
+  }
+
+  @keyframes glitch {
+    0%,89%,100% { transform: translate(0); }
+    90% { transform: translate(-2px, 1px); }
+    91% { transform: translate(2px, -1px); }
+    92% { transform: translate(-1px, 0); }
+    93% { transform: translate(0); }
+  }
+
+  @keyframes glitch-before {
+    0%,89%,100% { opacity: 0; transform: translate(0); }
+    90% { opacity: 0.7; transform: translate(-3px, 0); }
+    91% { opacity: 0; }
+    92% { opacity: 0.5; transform: translate(3px, 0); }
+    93% { opacity: 0; }
+  }
+
+  @keyframes glitch-after {
+    0%,89%,100% { opacity: 0; transform: translate(0); }
+    90% { opacity: 0; }
+    91% { opacity: 0.6; transform: translate(3px, 0); }
+    92% { opacity: 0; }
+    93% { opacity: 0.4; transform: translate(-3px, 0); }
+    94% { opacity: 0; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="rain-canvas"></canvas>
+<div id="scanlines"></div>
+<div id="vignette"></div>
+
+<div id="container">
+  <div id="top-label">:: SYSTEM COUNTDOWN ACTIVE ::</div>
+  <div id="timer" data-text="00:00:00">00:00:00</div>
+  <div id="progress-bar-wrap">
+    <div id="progress-bar" style="width:100%"></div>
+  </div>
+  <div id="percent">100.00% REMAINING</div>
+  <div id="bottom-label">RESETS DAILY @ 05:00 PACIFIC</div>
+  <div id="reset-label"></div>
+</div>
+
+<script>
+  // --- Matrix rain ---
+  const canvas = document.getElementById('rain-canvas');
+  const ctx = canvas.getContext('2d');
+
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  const chars = 'アァイィウウエェオォカガキギクグケゲコゴサザシジスズセゼソゾタダチヂツヅテデトドナニヌネノハバパヒビピフブプヘベペホボポマミムメモヤユヨラリルレロワヲン0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ01';
+  const fontSize = 14;
+  let columns, drops;
+
+  function initRain() {
+    columns = Math.floor(canvas.width / fontSize);
+    drops = Array(columns).fill(1);
+  }
+  initRain();
+  window.addEventListener('resize', initRain);
+
+  function drawRain() {
+    ctx.fillStyle = 'rgba(0,0,0,0.05)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.font = fontSize + 'px "Share Tech Mono", monospace';
+    for (let i = 0; i < drops.length; i++) {
+      const text = chars[Math.floor(Math.random() * chars.length)];
+      ctx.fillStyle = drops[i] * fontSize < 40 ? '#aaffaa' : '#00ff41';
+      ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+      if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+      drops[i]++;
+    }
+  }
+  setInterval(drawRain, 50);
+
+  // --- Timer logic ---
+  const TOTAL = 24 * 60 * 60; // 86400 seconds
+
+  function getSecondsRemaining() {
+    const now = new Date();
+    const ptFormatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Los_Angeles',
+      hour: 'numeric', minute: 'numeric', second: 'numeric',
+      hour12: false, year: 'numeric', month: 'numeric', day: 'numeric'
+    });
+    const parts = ptFormatter.formatToParts(now);
+    const get = (type) => parseInt(parts.find(p => p.type === type).value);
+    const h = get('hour'), m = get('minute'), s = get('second');
+
+    const secondsSinceMidnight = h * 3600 + m * 60 + s;
+    const resetSeconds = 5 * 3600; // 5:00 AM
+    let secondsSinceReset = secondsSinceMidnight - resetSeconds;
+    if (secondsSinceReset < 0) secondsSinceReset += 86400;
+
+    return TOTAL - secondsSinceReset;
+  }
+
+  function formatTime(totalSec) {
+    totalSec = Math.max(0, Math.floor(totalSec));
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    return [h, m, s].map(v => String(v).padStart(2, '0')).join(':');
+  }
+
+  const timerEl = document.getElementById('timer');
+  const barEl = document.getElementById('progress-bar');
+  const pctEl = document.getElementById('percent');
+
+  function tick() {
+    const remaining = getSecondsRemaining();
+    const display = formatTime(remaining);
+    timerEl.textContent = display;
+    timerEl.setAttribute('data-text', display);
+    const pct = (remaining / TOTAL) * 100;
+    barEl.style.width = pct.toFixed(4) + '%';
+    pctEl.textContent = pct.toFixed(2) + '% REMAINING';
+  }
+
+  tick();
+  setInterval(tick, 1000);
+</script>
+
+</body>
+</html>
