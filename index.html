@@ -70,7 +70,7 @@
     animation: flicker 6s infinite;
   }
 
-  #timer {
+  #clock {
     font-size: clamp(72px, 18vw, 260px);
     color: #00ff41;
     text-shadow:
@@ -84,22 +84,61 @@
     position: relative;
   }
 
-  #timer::before, #timer::after {
+  #clock::before, #clock::after {
     content: attr(data-text);
     position: absolute;
     top: 0; left: 0;
     width: 100%; height: 100%;
     opacity: 0;
   }
-  #timer::before {
+  #clock::before {
     color: #00ffff;
     animation: glitch-before 12s infinite;
     clip-path: polygon(0 25%, 100% 25%, 100% 50%, 0 50%);
   }
-  #timer::after {
+  #clock::after {
     color: #ff003c;
     animation: glitch-after 12s infinite;
     clip-path: polygon(0 60%, 100% 60%, 100% 75%, 0 75%);
+  }
+
+  #clock-label {
+    font-size: clamp(9px, 1.2vw, 15px);
+    color: #00ff41;
+    letter-spacing: 0.3em;
+    opacity: 0.45;
+    text-transform: uppercase;
+    animation: flicker 10s infinite;
+  }
+
+  #countdown-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  #countdown-label {
+    font-size: clamp(9px, 1.1vw, 14px);
+    color: #00ff41;
+    letter-spacing: 0.3em;
+    opacity: 0.5;
+    text-transform: uppercase;
+    animation: flicker 6s infinite;
+  }
+
+  #timer {
+    font-size: clamp(28px, 6vw, 80px);
+    color: #00ff41;
+    text-shadow:
+      0 0 6px #00ff41,
+      0 0 18px #00ff41,
+      0 0 40px rgba(0,255,65,0.4);
+    letter-spacing: 0.05em;
+    line-height: 1;
+    animation: flicker 8s infinite;
+    opacity: 0.75;
   }
 
   #bottom-label {
@@ -180,14 +219,18 @@
 <div id="vignette"></div>
 
 <div id="container">
-  <div id="top-label">:: SYSTEM COUNTDOWN ACTIVE ::</div>
-  <div id="timer" data-text="00:00:00">00:00:00</div>
-  <div id="progress-bar-wrap">
-    <div id="progress-bar" style="width:100%"></div>
+  <div id="top-label">:: PACIFIC TIME ::</div>
+  <div id="clock" data-text="00:00:00">00:00:00</div>
+  <div id="clock-label">LOS ANGELES / PACIFIC</div>
+  <div id="countdown-section">
+    <div id="countdown-label">:: DAILY COUNTDOWN ::</div>
+    <div id="timer">00:00:00</div>
+    <div id="progress-bar-wrap">
+      <div id="progress-bar" style="width:100%"></div>
+    </div>
+    <div id="percent">100.00% REMAINING</div>
+    <div id="bottom-label">RESETS DAILY @ 05:00 PACIFIC</div>
   </div>
-  <div id="percent">100.00% REMAINING</div>
-  <div id="bottom-label">RESETS DAILY @ 05:00 PACIFIC</div>
-  <div id="reset-label"></div>
 </div>
 
 <script>
@@ -257,15 +300,33 @@
     return [h, m, s].map(v => String(v).padStart(2, '0')).join(':');
   }
 
+  const clockEl = document.getElementById('clock');
   const timerEl = document.getElementById('timer');
   const barEl = document.getElementById('progress-bar');
   const pctEl = document.getElementById('percent');
 
+  function getPacificTime() {
+    const now = new Date();
+    const ptFormatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Los_Angeles',
+      hour: 'numeric', minute: 'numeric', second: 'numeric',
+      hour12: false
+    });
+    const parts = ptFormatter.formatToParts(now);
+    const get = (type) => String(parseInt(parts.find(p => p.type === type).value)).padStart(2, '0');
+    return get('hour') + ':' + get('minute') + ':' + get('second');
+  }
+
   function tick() {
+    // Update main clock
+    const clockDisplay = getPacificTime();
+    clockEl.textContent = clockDisplay;
+    clockEl.setAttribute('data-text', clockDisplay);
+
+    // Update countdown
     const remaining = getSecondsRemaining();
-    const display = formatTime(remaining);
-    timerEl.textContent = display;
-    timerEl.setAttribute('data-text', display);
+    const countdownDisplay = formatTime(remaining);
+    timerEl.textContent = countdownDisplay;
     const pct = (remaining / TOTAL) * 100;
     barEl.style.width = pct.toFixed(4) + '%';
     pctEl.textContent = pct.toFixed(2) + '% REMAINING';
