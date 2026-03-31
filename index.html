@@ -309,13 +309,13 @@
     const now = new Date();
     const ptFormatter = new Intl.DateTimeFormat('en-US', {
       timeZone: 'America/Los_Angeles',
-      hour: 'numeric', minute: 'numeric', second: 'numeric',
+      hour: 'numeric', minute: 'numeric',
       hour12: true
     });
     const parts = ptFormatter.formatToParts(now);
     const get = (type) => String(parseInt(parts.find(p => p.type === type).value)).padStart(2, '0');
     const period = parts.find(p => p.type === 'dayPeriod').value;
-    return get('hour') + ':' + get('minute') + ':' + get('second') + ' ' + period;
+    return get('hour') + ':' + get('minute') + ' ' + period;
   }
 
   function tick() {
